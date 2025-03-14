@@ -1,0 +1,52 @@
+Am implementat aceasta tema in C++ folosind paradigma
+Map-Reduce si biblioteca pthreads. In cea mai mare parte
+din rularile pe care le-am efectuat cu docker-ul am primit
+punctajul maxim.
+Am definit structura mapStruct unde se retin datele
+pentru fiecare thread Map precum datele despre fisierele
+care trebuie procesate, date din care sa reiasa ca toate
+thread-urile Map s-au terminat, precum si rezultatele
+partiale dupa terminarea tuturor thread-urilor Map. Pentru
+eficienta, am decis sa fac agregarea in cadrul etapei Map.
+Fisierele sunt impartite dinamic. Pentru a face asta am
+folosit o variabila file_index care se incrementeaza pe
+masura ce un fisier este ales pentru a fi procesat. Cand
+un mapper isi termina treaba va alege urmatorul fisier
+disponibil. Se citesc cuvintele din fisier si se proceseaza
+astfel incat cuvantul sa nu contina alte caractere in afara
+de litere mici. Dupa ce cunvatul este procesat, acesta se
+adauga intr-o lista partiala impreuna cu indexului fisierului
+in care a fost gasit. dupa ce mapper-ul si-a terminat de
+prelucrat fisierele, lista partiala este adaugata intr-o lista
+mai mare care la final dupa terminarea tuturor thread-urilor
+Map va avea toate cuvintele din fisiere cu toate file_id-urile
+corespunzatoare. La finalul functiei se face sincronizarea
+thread-urilor. Daca un mapper a terminat se incrementeaza o
+variabila finished_mappers care va fi comparata cu numarul de
+mapperi. Daca sunt egale, atunci flag-ul mappers_done devine true,
+iar thread-urile Reducer sunt notificate.
+Am folosit structura reduceStruct unde retin datele necesare
+pentru reduceri precum rezultatul mapperilor, un flag pentru
+mapperi, un flag care sa semnifice ca rezulatele mapperilor au
+fost impartite dupa litera, litera corespunzatoare thread ului
+si rezultatele finale. Mai intai se verifica daca toti mapperii
+au terminat (pthread_cond), daca nu se asteapta. Daca mapperii
+au terminat se verifica daca rezultatul lor a fost impartit
+dupa litere de un reducer. Daca nu, am folosit vectorul de vectori
+care retine pentru fiecare litera intrarile corespunzatoare de
+cuvinte cu id-urile fisierelor. Fiecarui thread reducer ii sunt
+asignate anumite litere. Un thread reducer va incepe cu litera
+letter = 'a' + thread_id si va continua cu letter + nr_Reduceri.
+Pentru fiecare litera asignata va deschide un fisier, daca exista
+cuvinte cu acea litera, mai intai le va sorta cu ajutorul
+unui comparator si a functiei compare, apoi le va scrie in fisier.
+Cuvintele vor fi sortate dupa numarul de file_id-uri, iar in cazul
+in care numarul este egal, se sorteaza dupa litera.
+In main am citit numarul de fisiere si numele acestora, am creat
+structurile pentru thread-urile Map si Reduce, am initializat
+mutex-urile (folosite in situatii precum precum protejarea unor
+date ce pot fi accesate de thread-uri simultan (ex mappers_done,
+file_index, mapResults)) si conditiile de sincronizare pthread_cond
+(pentru a notifica reducerii cand thread-urile map au terminat).
+De asemenea am creat si am dat join thread-urilor Map si Reduce in
+aceleasi for-uri.
